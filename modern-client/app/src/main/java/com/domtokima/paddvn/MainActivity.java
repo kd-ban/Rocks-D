@@ -13,7 +13,6 @@ import java.net.URL;
 public final class MainActivity extends Activity {
     static { System.loadLibrary("game"); }
     private static native String nativeStatus();
-    private static native String nativeRunLuaBytes(byte[] data, String chunkName);
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -25,27 +24,27 @@ public final class MainActivity extends Activity {
         boolean sso = assetExists("original/lua/SSO/sso.op");
         boolean network = assetExists("original/lua/util/netWork.op");
         String lua = nativeStatus();
-        String assetLua = runBootstrapSafely();
+        String assetRead = readBootstrapOnly();
 
-        view.setText("Rocks-D ARM64 Stage 4.2\n" + lua + "\n" + assetLua
+        view.setText("Rocks-D ARM64 Stage 4.3\n" + lua + "\n" + assetRead
                 + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING")
                 + "\nServer: CHECKING...");
 
         new Thread(() -> {
             String server = checkServer();
-            runOnUiThread(() -> view.setText("Rocks-D ARM64 Stage 4.2\n" + lua + "\n" + assetLua
+            runOnUiThread(() -> view.setText("Rocks-D ARM64 Stage 4.3\n" + lua + "\n" + assetRead
                     + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING")
                     + "\nServer: " + server));
         }).start();
     }
 
-    private String runBootstrapSafely() {
+    private String readBootstrapOnly() {
         try {
             byte[] data = readAsset("stage4/bootstrap.lua");
-            if (data == null || data.length == 0) return "Asset Lua: READ FAILED";
-            return nativeRunLuaBytes(data, "stage4/bootstrap.lua");
+            if (data == null || data.length == 0) return "Bootstrap asset: READ FAILED";
+            return "Bootstrap asset: READ OK / bytes=" + data.length;
         } catch (Throwable t) {
-            return "Asset Lua: JAVA ERROR " + t.getClass().getSimpleName();
+            return "Bootstrap asset: JAVA ERROR " + t.getClass().getSimpleName();
         }
     }
 
