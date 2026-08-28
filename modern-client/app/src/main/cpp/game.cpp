@@ -1,6 +1,4 @@
 #include <jni.h>
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
 #include <string>
 
 extern "C" {
@@ -33,34 +31,21 @@ Java_com_domtokima_paddvn_MainActivity_nativeStatus(JNIEnv* env, jclass) {
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_domtokima_paddvn_MainActivity_nativeRunAsset(JNIEnv* env, jclass, jobject assetManager, jstring path) {
-    if (!assetManager || !path) return env->NewStringUTF("Asset Lua: INVALID JNI INPUT");
-    AAssetManager* mgr = AAssetManager_fromJava(env, assetManager);
-    if (!mgr) return env->NewStringUTF("Asset Lua: NO ASSET MANAGER");
-    const char* cpath = env->GetStringUTFChars(path, nullptr);
-    if (!cpath) return env->NewStringUTF("Asset Lua: PATH ERROR");
-    AAsset* asset = AAssetManager_open(mgr, cpath, AASSET_MODE_STREAMING);
-    if (!asset) {
-        env->ReleaseStringUTFChars(path, cpath);
-        return env->NewStringUTF("Asset Lua: FILE MISSING");
+Java_com_domtokima_paddvn_MainActivity_nativeRunLuaBytes(JNIEnv* env, jclass, jbyteArray bytes, jstring chunkName) {
+    if (!bytes) return env->NewStringUTF("Asset Lua: NO BYTES");
+    jsize len = env->GetArrayLength(bytes);
+    if (len <= 0) return env->NewStringUTF("Asset Lua: EMPTY");
+    jbyte* data = env->GetByteArrayElements(bytes, nullptr);
+    if (!data) return env->NewStringUTF("Asset Lua: BYTE ACCESS FAILED");
+    const char* chunk = "bootstrap.lua";
+    const char* acquiredChunk = nullptr;
+    if (chunkName) {
+        acquiredChunk = env->GetStringUTFChars(chunkName, nullptr);
+        if (acquiredChunk) chunk = acquiredChunk;
     }
-    const off_t len = AAsset_getLength(asset);
-    std::string data;
-    if (len > 0) {
-        data.resize((size_t)len);
-        size_t total = 0;
-        while (total < (size_t)len) {
-            int n = AAsset_read(asset, &data[total], (size_t)len - total);
-            if (n <= 0) break;
-            total += (size_t)n;
-        }
-        data.resize(total);
-    }
-    AAsset_close(asset);
-    std::string chunk(cpath);
-    env->ReleaseStringUTFChars(path, cpath);
-    if (data.empty()) return env->NewStringUTF("Asset Lua: READ FAILED");
-    std::string result = runLua(data.data(), data.size(), chunk.c_str());
+    std::string result = runLua(reinterpret_cast<const char*>(data), static_cast<size_t>(len), chunk);
+    if (acquiredChunk) env->ReleaseStringUTFChars(chunkName, acquiredChunk);
+    env->ReleaseByteArrayElements(bytes, data, JNI_ABORT);
     return env->NewStringUTF(result.c_str());
 }
 
