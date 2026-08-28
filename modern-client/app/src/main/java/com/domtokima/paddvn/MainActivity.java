@@ -1,6 +1,7 @@
 package com.domtokima.paddvn;
 
 import android.app.Activity;
+import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.widget.TextView;
@@ -12,24 +13,26 @@ import java.net.URL;
 public final class MainActivity extends Activity {
     static { System.loadLibrary("game"); }
     private static native String nativeStatus();
+    private static native String nativeRunAsset(AssetManager assets, String path);
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         final TextView view = new TextView(this);
         view.setGravity(Gravity.CENTER);
-        view.setTextSize(20f);
+        view.setTextSize(18f);
         setContentView(view);
 
         boolean sso = assetExists("original/lua/SSO/sso.op");
         boolean network = assetExists("original/lua/util/netWork.op");
         String lua = nativeStatus();
-        view.setText("Rocks-D ARM64 Stage 3\n" + lua
+        String assetLua = nativeRunAsset(getAssets(), "stage4/bootstrap.lua");
+        view.setText("Rocks-D ARM64 Stage 4\n" + lua + "\n" + assetLua
                 + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING")
                 + "\nServer: CHECKING...");
 
         new Thread(() -> {
             String server = checkServer();
-            runOnUiThread(() -> view.setText("Rocks-D ARM64 Stage 3\n" + lua
+            runOnUiThread(() -> view.setText("Rocks-D ARM64 Stage 4\n" + lua + "\n" + assetLua
                     + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING")
                     + "\nServer: " + server));
         }).start();
