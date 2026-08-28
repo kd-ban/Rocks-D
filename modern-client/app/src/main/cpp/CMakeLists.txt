@@ -10,4 +10,5 @@ target_include_directories(game PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lua)
 
 target_compile_definitions(game PRIVATE LUA_USE_POSIX)
 find_library(log-lib log)
-target_link_libraries(game ${log-lib} m dl)
+find_library(android-lib android)
+target_link_libraries(game ${log-lib} ${android-lib} m dl)
