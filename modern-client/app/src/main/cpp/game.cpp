@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <string>
+#include <vector>
 
 extern "C" {
 #include "lua.h"
@@ -7,19 +8,16 @@ extern "C" {
 #include "lualib.h"
 }
 
-static std::string runLua(const char* data, size_t size, const char* chunk) {
+static std::string runLua(const char* data, size_t size) {
     lua_State* L = luaL_newstate();
-    if (!L) return "Lua asset: FAILED state";
-    luaL_openlibs(L);
-    int rc = luaL_loadbuffer(L, data, size, chunk);
-    if (rc == 0) rc = lua_pcall(L, 0, 1, 0);
+    if (!L) return "Lua: STATE FAILED";
+    int rc = luaL_loadbuffer(L, data, size, "@bootstrap.lua");
+    if (rc == 0) rc = lua_pcall(L, 0, 0, 0);
     std::string out;
-    if (rc == 0) {
-        const char* value = lua_tostring(L, -1);
-        out = std::string("Asset Lua: ") + (value ? value : "OK");
-    } else {
+    if (rc == 0) out = "Lua execute: OK";
+    else {
         const char* err = lua_tostring(L, -1);
-        out = std::string("Asset Lua error: ") + (err ? err : "unknown");
+        out = std::string("Lua execute: ERROR / ") + (err ? err : "unknown");
     }
     lua_close(L);
     return out;
@@ -31,21 +29,17 @@ Java_com_domtokima_paddvn_MainActivity_nativeStatus(JNIEnv* env, jclass) {
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_domtokima_paddvn_MainActivity_nativeRunLuaBytes(JNIEnv* env, jclass, jbyteArray bytes, jstring chunkName) {
-    if (!bytes) return env->NewStringUTF("Asset Lua: NO BYTES");
+Java_com_domtokima_paddvn_MainActivity_nativeRunLuaBytes(JNIEnv* env, jclass, jbyteArray bytes) {
+    if (!bytes) return env->NewStringUTF("Lua execute: NO BYTES");
     jsize len = env->GetArrayLength(bytes);
-    if (len <= 0) return env->NewStringUTF("Asset Lua: EMPTY");
-    jbyte* data = env->GetByteArrayElements(bytes, nullptr);
-    if (!data) return env->NewStringUTF("Asset Lua: BYTE ACCESS FAILED");
-    const char* chunk = "bootstrap.lua";
-    const char* acquiredChunk = nullptr;
-    if (chunkName) {
-        acquiredChunk = env->GetStringUTFChars(chunkName, nullptr);
-        if (acquiredChunk) chunk = acquiredChunk;
+    if (len <= 0 || len > 1024 * 1024) return env->NewStringUTF("Lua execute: BAD SIZE");
+    std::vector<char> copy(static_cast<size_t>(len));
+    env->GetByteArrayRegion(bytes, 0, len, reinterpret_cast<jbyte*>(copy.data()));
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        return env->NewStringUTF("Lua execute: JNI COPY ERROR");
     }
-    std::string result = runLua(reinterpret_cast<const char*>(data), static_cast<size_t>(len), chunk);
-    if (acquiredChunk) env->ReleaseStringUTFChars(chunkName, acquiredChunk);
-    env->ReleaseByteArrayElements(bytes, data, JNI_ABORT);
+    std::string result = runLua(copy.data(), copy.size());
     return env->NewStringUTF(result.c_str());
 }
 
