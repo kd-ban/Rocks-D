@@ -25,16 +25,27 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Import original game assets
+        run: |
+          test -f Rocks-D-private-server-UNSIGNED.apk
+          rm -rf /tmp/rocksd-original modern-client/app/src/main/assets/original
+          mkdir -p /tmp/rocksd-original modern-client/app/src/main/assets/original
+          unzip -q Rocks-D-private-server-UNSIGNED.apk 'assets/*' -d /tmp/rocksd-original
+          cp -a /tmp/rocksd-original/assets/. modern-client/app/src/main/assets/original/
+          test -f modern-client/app/src/main/assets/original/lua/SSO/sso.op
+          test -f modern-client/app/src/main/assets/original/lua/util/netWork.op
+          echo "Imported original assets: $(find modern-client/app/src/main/assets/original -type f | wc -l) files"
+
       - name: Build ARM64 debug APK
         working-directory: modern-client
         run: gradle assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-debug.apk
+        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-assets-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Rocks-D-ARM64-debug
-          path: Rocks-D-ARM64-debug.apk
+          name: Rocks-D-ARM64-assets-debug
+          path: Rocks-D-ARM64-assets-debug.apk
           if-no-files-found: error
