@@ -1,0 +1,40 @@
+name: Build Rocks-D ARM64
+
+on:
+  push:
+    paths:
+      - 'modern-client/**'
+      - '.github/workflows/build-arm64.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build ARM64 debug APK
+        working-directory: modern-client
+        run: gradle assembleDebug --stacktrace
+
+      - name: Rename APK
+        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rocks-D-ARM64-debug
+          path: Rocks-D-ARM64-debug.apk
+          if-no-files-found: error
