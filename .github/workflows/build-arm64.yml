@@ -14,12 +14,6 @@ jobs:
       - name: Checkout Rocks-D
         uses: actions/checkout@v4
 
-      - name: Checkout recovered engine
-        uses: actions/checkout@v4
-        with:
-          repository: kd-ban/one-piece-
-          path: recovered-engine
-
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -41,14 +35,16 @@ jobs:
           test -f modern-client/app/src/main/assets/original/lua/SSO/sso.op
           test -f modern-client/app/src/main/assets/original/lua/util/netWork.op
 
-      - name: Import recovered Lua 5.1 runtime
+      - name: Import Lua 5.1.5 runtime
         run: |
-          rm -rf modern-client/app/src/main/cpp/lua
+          rm -rf /tmp/lua-5.1.5 modern-client/app/src/main/cpp/lua
+          curl -L --fail --retry 3 https://www.lua.org/ftp/lua-5.1.5.tar.gz -o /tmp/lua-5.1.5.tar.gz
+          tar -xzf /tmp/lua-5.1.5.tar.gz -C /tmp
           mkdir -p modern-client/app/src/main/cpp/lua
-          cp -a recovered-engine/Engine/scripting/lua/lua/. modern-client/app/src/main/cpp/lua/
+          cp -a /tmp/lua-5.1.5/src/. modern-client/app/src/main/cpp/lua/
           test -f modern-client/app/src/main/cpp/lua/lua.h
           test -f modern-client/app/src/main/cpp/lua/lauxlib.c
-          echo "Lua runtime imported"
+          echo "Lua 5.1.5 runtime imported"
 
       - name: Build ARM64 Stage 3 APK
         working-directory: modern-client
