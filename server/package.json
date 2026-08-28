@@ -1,0 +1,13 @@
+{
+  "name": "rocks-d-private-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Compatibility server for the preserved Rocks-D Android client",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
