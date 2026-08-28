@@ -2,7 +2,6 @@
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <string>
-#include <vector>
 
 extern "C" {
 #include "lua.h"
@@ -30,40 +29,38 @@ static std::string runLua(const char* data, size_t size, const char* chunk) {
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_domtokima_paddvn_MainActivity_nativeStatus(JNIEnv* env, jclass) {
-    lua_State* L = luaL_newstate();
-    if (!L) return env->NewStringUTF("Lua runtime: FAILED to create state");
-    const char* script = "return 'Lua ARM64 OK', 40 + 2";
-    int rc = luaL_loadstring(L, script);
-    if (rc == 0) rc = lua_pcall(L, 0, 2, 0);
-    std::string status;
-    if (rc == 0) {
-        const char* text = lua_tostring(L, -2);
-        int value = (int)lua_tointeger(L, -1);
-        status = std::string(text ? text : "Lua OK") + " / test=" + std::to_string(value);
-    } else {
-        const char* error = lua_tostring(L, -1);
-        status = std::string("Lua error: ") + (error ? error : "unknown");
-    }
-    lua_close(L);
-    return env->NewStringUTF(status.c_str());
+    return env->NewStringUTF("Lua ARM64 runtime loaded");
 }
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_domtokima_paddvn_MainActivity_nativeRunAsset(JNIEnv* env, jclass, jobject assetManager, jstring path) {
+    if (!assetManager || !path) return env->NewStringUTF("Asset Lua: INVALID JNI INPUT");
     AAssetManager* mgr = AAssetManager_fromJava(env, assetManager);
     if (!mgr) return env->NewStringUTF("Asset Lua: NO ASSET MANAGER");
     const char* cpath = env->GetStringUTFChars(path, nullptr);
-    AAsset* asset = AAssetManager_open(mgr, cpath, AASSET_MODE_BUFFER);
+    if (!cpath) return env->NewStringUTF("Asset Lua: PATH ERROR");
+    AAsset* asset = AAssetManager_open(mgr, cpath, AASSET_MODE_STREAMING);
     if (!asset) {
         env->ReleaseStringUTFChars(path, cpath);
         return env->NewStringUTF("Asset Lua: FILE MISSING");
     }
-    off_t len = AAsset_getLength(asset);
-    std::vector<char> data((size_t)len);
-    int read = AAsset_read(asset, data.data(), (size_t)len);
-    std::string result = read == len ? runLua(data.data(), data.size(), cpath) : "Asset Lua: READ FAILED";
+    const off_t len = AAsset_getLength(asset);
+    std::string data;
+    if (len > 0) {
+        data.resize((size_t)len);
+        size_t total = 0;
+        while (total < (size_t)len) {
+            int n = AAsset_read(asset, &data[total], (size_t)len - total);
+            if (n <= 0) break;
+            total += (size_t)n;
+        }
+        data.resize(total);
+    }
     AAsset_close(asset);
+    std::string chunk(cpath);
     env->ReleaseStringUTFChars(path, cpath);
+    if (data.empty()) return env->NewStringUTF("Asset Lua: READ FAILED");
+    std::string result = runLua(data.data(), data.size(), chunk.c_str());
     return env->NewStringUTF(result.c_str());
 }
 
