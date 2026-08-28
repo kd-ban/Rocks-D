@@ -13,6 +13,7 @@ import java.net.URL;
 public final class MainActivity extends Activity {
     static { System.loadLibrary("game"); }
     private static native String nativeStatus();
+    private static native String nativeRunLuaBytes(byte[] data);
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -23,36 +24,34 @@ public final class MainActivity extends Activity {
 
         boolean sso = assetExists("original/lua/SSO/sso.op");
         boolean network = assetExists("original/lua/util/netWork.op");
-        String lua = nativeStatus();
-        String assetRead = readBootstrapOnly();
+        String runtime = nativeStatus();
+        String luaResult = executeBootstrap();
 
-        view.setText("Rocks-D ARM64 Stage 4.3\n" + lua + "\n" + assetRead
+        view.setText("Rocks-D ARM64 Stage 4.4\n" + runtime + "\n" + luaResult
                 + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING")
                 + "\nServer: CHECKING...");
 
         new Thread(() -> {
             String server = checkServer();
-            runOnUiThread(() -> view.setText("Rocks-D ARM64 Stage 4.3\n" + lua + "\n" + assetRead
+            runOnUiThread(() -> view.setText("Rocks-D ARM64 Stage 4.4\n" + runtime + "\n" + luaResult
                     + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING")
                     + "\nServer: " + server));
         }).start();
     }
 
-    private String readBootstrapOnly() {
+    private String executeBootstrap() {
         try {
             byte[] data = readAsset("stage4/bootstrap.lua");
-            if (data == null || data.length == 0) return "Bootstrap asset: READ FAILED";
-            return "Bootstrap asset: READ OK / bytes=" + data.length;
+            if (data.length == 0) return "Lua execute: EMPTY ASSET";
+            return nativeRunLuaBytes(data);
         } catch (Throwable t) {
-            return "Bootstrap asset: JAVA ERROR " + t.getClass().getSimpleName();
+            return "Lua execute: JAVA ERROR / " + t.getClass().getSimpleName();
         }
     }
 
     private byte[] readAsset(String path) throws Exception {
-        try (InputStream in = getAssets().open(path);
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[4096];
-            int n;
+        try (InputStream in = getAssets().open(path); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096]; int n;
             while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
             return out.toByteArray();
         }
@@ -67,14 +66,9 @@ public final class MainActivity extends Activity {
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) new URL("http://192.168.8.59/health").openConnection();
-            connection.setConnectTimeout(2500);
-            connection.setReadTimeout(2500);
-            int code = connection.getResponseCode();
-            return code == 200 ? "ONLINE" : "HTTP " + code;
-        } catch (Exception e) {
-            return "OFFLINE";
-        } finally {
-            if (connection != null) connection.disconnect();
-        }
+            connection.setConnectTimeout(2500); connection.setReadTimeout(2500);
+            return connection.getResponseCode() == 200 ? "ONLINE" : "ERROR";
+        } catch (Exception e) { return "OFFLINE"; }
+        finally { if (connection != null) connection.disconnect(); }
     }
 }
