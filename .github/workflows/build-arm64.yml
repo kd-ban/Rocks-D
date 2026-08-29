@@ -56,9 +56,7 @@ jobs:
       - name: Import Cocos2d-x 2.1.4 source
         run: |
           rm -rf /tmp/cocos2d-x-2.1.4 /tmp/cocos214.tar.gz
-          curl -L --fail --retry 3 \
-            https://github.com/cocos2d/cocos2d-x/archive/refs/tags/cocos2d-x-2.1.4.tar.gz \
-            -o /tmp/cocos214.tar.gz
+          curl -L --fail --retry 3 https://github.com/cocos2d/cocos2d-x/archive/refs/tags/cocos2d-x-2.1.4.tar.gz -o /tmp/cocos214.tar.gz
           tar -xzf /tmp/cocos214.tar.gz -C /tmp
           ENGINE_DIR="$(find /tmp -maxdepth 1 -type d -name 'cocos2d-x-*2.1.4*' | head -n1)"
           test -n "$ENGINE_DIR"
@@ -80,10 +78,7 @@ jobs:
           n = max(0, (len(data)//8 - 1) * 8)
           head, tail = data[:n], data[n:]
           if head:
-              p = subprocess.run([
-                  'openssl','enc','-d','-des-ecb','-K','a5320f8e5957633d','-nopad',
-                  '-provider','legacy','-provider','default'
-              ], input=head, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+              p = subprocess.run(['openssl','enc','-d','-des-ecb','-K','a5320f8e5957633d','-nopad','-provider','legacy','-provider','default'], input=head, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
               plain = p.stdout + tail
           else:
               plain = tail
@@ -113,32 +108,33 @@ jobs:
           mkdir -p modern-client/app/src/main/cpp/lua
           cp -a /tmp/lua-5.1.5/src/. modern-client/app/src/main/cpp/lua/
           test -f modern-client/app/src/main/cpp/lua/lua.h
-          test -f modern-client/app/src/main/cpp/lua/lauxlib.c
 
       - name: Import libpng ARM64 source
         run: |
           rm -rf /tmp/libpng-1.6.43 /tmp/libpng.tar.gz modern-client/app/src/main/cpp/libpng
-          curl -L --fail --retry 3 \
-            https://github.com/pnggroup/libpng/archive/refs/tags/v1.6.43.tar.gz \
-            -o /tmp/libpng.tar.gz
+          curl -L --fail --retry 3 https://github.com/pnggroup/libpng/archive/refs/tags/v1.6.43.tar.gz -o /tmp/libpng.tar.gz
           tar -xzf /tmp/libpng.tar.gz -C /tmp
           PNG_DIR="$(find /tmp -maxdepth 1 -type d -name 'libpng-*' | head -n1)"
           test -n "$PNG_DIR"
           mkdir -p modern-client/app/src/main/cpp/libpng
           cp -a "$PNG_DIR"/. modern-client/app/src/main/cpp/libpng/
+          if [ ! -f modern-client/app/src/main/cpp/libpng/pnglibconf.h ]; then
+            cp modern-client/app/src/main/cpp/libpng/scripts/pnglibconf.h.prebuilt modern-client/app/src/main/cpp/libpng/pnglibconf.h
+          fi
           test -f modern-client/app/src/main/cpp/libpng/png.h
+          test -f modern-client/app/src/main/cpp/libpng/pnglibconf.h
           test -f modern-client/app/src/main/cpp/libpng/png.c
 
-      - name: Build ARM64 Stage 8.8 APK
+      - name: Build ARM64 Stage 8.9 APK
         working-directory: modern-client
         run: gradle assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage8.8.apk
+        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage8.9.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Rocks-D-ARM64-stage8.8
-          path: Rocks-D-ARM64-stage8.8.apk
+          name: Rocks-D-ARM64-stage8.9
+          path: Rocks-D-ARM64-stage8.9.apk
           if-no-files-found: error
