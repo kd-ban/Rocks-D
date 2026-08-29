@@ -14,8 +14,10 @@ add_library(game SHARED
     "${COCOS_ROOT}/CCScheduler.cpp"
     "${COCOS_ROOT}/CCCamera.cpp"
     "${COCOS_ROOT}/CCDirector.cpp"
+    "${COCOS_ROOT}/base_nodes/CCAtlasNode.cpp"
     "${COCOS_ROOT}/base_nodes/CCNode.cpp"
     "${COCOS_ROOT}/layers_scenes_transitions_nodes/CCScene.cpp"
+    "${COCOS_ROOT}/layers_scenes_transitions_nodes/CCTransition.cpp"
     "${COCOS_ROOT}/cocoa/CCAffineTransform.cpp"
     "${COCOS_ROOT}/cocoa/CCGeometry.cpp"
     "${COCOS_ROOT}/cocoa/CCAutoreleasePool.cpp"
@@ -34,6 +36,22 @@ add_library(game SHARED
     "${COCOS_ROOT}/touch_dispatcher/CCTouch.cpp"
     "${COCOS_ROOT}/touch_dispatcher/CCTouchHandler.cpp"
     "${COCOS_ROOT}/touch_dispatcher/CCTouchDispatcher.cpp"
+    "${COCOS_ROOT}/script_support/CCScriptSupport.cpp"
+    "${COCOS_ROOT}/textures/CCTexture2D.cpp"
+    "${COCOS_ROOT}/textures/CCTextureCache.cpp"
+    "${COCOS_ROOT}/textures/CCTextureAtlas.cpp"
+    "${COCOS_ROOT}/textures/CCTextureETC.cpp"
+    "${COCOS_ROOT}/textures/CCTexturePVR.cpp"
+    "${COCOS_ROOT}/label_nodes/CCLabelAtlas.cpp"
+    "${COCOS_ROOT}/label_nodes/CCLabelBMFont.cpp"
+    "${COCOS_ROOT}/platform/CCFileUtils.cpp"
+    "${COCOS_ROOT}/platform/CCEGLViewProtocol.cpp"
+    "${COCOS_ROOT}/platform/android/CCEGLView.cpp"
+    "${COCOS_ROOT}/platform/android/CCAccelerometer.cpp"
+    "${COCOS_ROOT}/platform/android/CCFileUtilsAndroid.cpp"
+    "${COCOS_ROOT}/platform/android/CCImage.cpp"
+    "${COCOS_ROOT}/platform/android/CCCommon.cpp"
+    "${COCOS_ROOT}/platform/android/jni/JniHelper.cpp"
     "${COCOS_ROOT}/shaders/ccShaders.cpp"
     "${COCOS_ROOT}/shaders/CCGLProgram.cpp"
     "${COCOS_ROOT}/shaders/ccGLStateCache.cpp"
@@ -61,6 +79,7 @@ target_include_directories(game PRIVATE
     "${COCOS_ROOT}/include"
     "${COCOS_ROOT}/kazmath/include"
     "${COCOS_ROOT}/platform/android"
+    "${COCOS_ROOT}/platform/android/jni"
 )
 
 target_compile_definitions(game PRIVATE USE_FILE32API)
@@ -70,12 +89,14 @@ find_library(log-lib log)
 find_library(android-lib android)
 find_library(glesv2-lib GLESv2)
 find_library(z-lib z)
+find_library(jnigraphics-lib jnigraphics)
 
 target_link_libraries(game
     ${log-lib}
     ${android-lib}
     ${glesv2-lib}
     ${z-lib}
+    ${jnigraphics-lib}
     m
     dl
 )
