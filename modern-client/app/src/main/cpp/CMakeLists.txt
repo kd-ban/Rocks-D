@@ -10,6 +10,7 @@ set(COCOS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../engine/cocos2d-x-2.1.4/c
 add_library(game SHARED
     game.cpp
     "${COCOS_ROOT}/cocos2d.cpp"
+    "${COCOS_ROOT}/cocoa/CCGeometry.cpp"
 )
 
 target_include_directories(game PRIVATE
