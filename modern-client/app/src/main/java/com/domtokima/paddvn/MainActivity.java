@@ -52,36 +52,35 @@ public final class MainActivity extends Activity {
         private void loadOriginalArtwork() {
             try {
                 List<String> candidates = new ArrayList<>();
-                collectImages(getAssets(), "original/images", candidates, 0);
+                collectImages(getAssets(), "original", candidates, 0);
                 Collections.sort(candidates);
 
-                // Prefer larger/background-looking files when the names exist.
-                String chosen = null;
-                for (String path : candidates) {
-                    String lower = path.toLowerCase();
-                    if (lower.contains("login") || lower.contains("loading")
-                            || lower.contains("background") || lower.contains("main")) {
-                        chosen = path;
-                        break;
-                    }
-                }
-                if (chosen == null && !candidates.isEmpty()) chosen = candidates.get(0);
-
+                String chosen = chooseBest(candidates);
                 if (chosen != null) {
                     try (InputStream in = getAssets().open(chosen)) {
                         artwork = BitmapFactory.decodeStream(in);
                     }
-                    assetPath = chosen;
+                    assetPath = chosen + " (" + candidates.size() + " images found)";
                 } else {
-                    assetPath = "NO PNG/JPG FOUND IN original/images";
+                    assetPath = "NO PNG/JPG FOUND UNDER original/";
                 }
             } catch (Throwable t) {
                 assetPath = "ASSET ERROR: " + t.getClass().getSimpleName();
             }
         }
 
+        private String chooseBest(List<String> candidates) {
+            String[] preferred = {"login", "loading", "background", "main", "start", "logo"};
+            for (String keyword : preferred) {
+                for (String path : candidates) {
+                    if (path.toLowerCase().contains(keyword)) return path;
+                }
+            }
+            return candidates.isEmpty() ? null : candidates.get(0);
+        }
+
         private void collectImages(AssetManager am, String dir, List<String> out, int depth) throws Exception {
-            if (depth > 6) return;
+            if (depth > 10) return;
             String[] names = am.list(dir);
             if (names == null) return;
             for (String name : names) {
@@ -89,8 +88,9 @@ public final class MainActivity extends Activity {
                 String lower = name.toLowerCase();
                 if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
                     out.add(path);
-                } else if (!name.contains(".")) {
-                    collectImages(am, path, out, depth + 1);
+                } else {
+                    String[] child = am.list(path);
+                    if (child != null && child.length > 0) collectImages(am, path, out, depth + 1);
                 }
             }
         }
@@ -102,7 +102,8 @@ public final class MainActivity extends Activity {
                     c = (HttpURLConnection) new URL("http://192.168.8.59/health").openConnection();
                     c.setConnectTimeout(1800);
                     c.setReadTimeout(1800);
-                    serverState = c.getResponseCode() == 200 ? "SERVER ONLINE" : "SERVER HTTP " + c.getResponseCode();
+                    int code = c.getResponseCode();
+                    serverState = code == 200 ? "SERVER ONLINE" : "SERVER HTTP " + code;
                 } catch (Throwable t) {
                     serverState = "SERVER OFFLINE";
                 } finally {
@@ -135,7 +136,7 @@ public final class MainActivity extends Activity {
 
             paint.setColor(0xAA000000);
             canvas.drawRect(0, Math.max(0, h - 150), w, h, paint);
-            canvas.drawText("Rocks-D Stage 7.0 | " + serverState, 30, h - 92, text);
+            canvas.drawText("Rocks-D Stage 7.1 | " + serverState, 30, h - 92, text);
             text.setTextSize(23f);
             canvas.drawText("Original asset: " + assetPath, 30, h - 48, text);
             text.setTextSize(34f);
