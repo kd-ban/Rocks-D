@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>frames</key>
+        <dict>
+            <key>springLogo.png</key>
+            <dict>
+                <key>frame</key>
+                <string>{{2,2},{579,432}}</string>
+                <key>offset</key>
+                <string>{1,-1}</string>
+                <key>rotated</key>
+                <false/>
+                <key>sourceColorRect</key>
+                <string>{{15,5},{579,432}}</string>
+                <key>sourceSize</key>
+                <string>{607,440}</string>
+            </dict>
+        </dict>
+        <key>metadata</key>
+        <dict>
+            <key>format</key>
+            <integer>2</integer>
+            <key>realTextureFileName</key>
+            <string>springLogo.pvr.ccz</string>
+            <key>size</key>
+            <string>{583,436}</string>
+            <key>smartupdate</key>
+            <string>$TexturePacker:SmartUpdate:ac31c5c9592e102c23a0246929448da9:1/1$</string>
+            <key>textureFileName</key>
+            <string>springLogo.pvr.ccz</string>
+        </dict>
+    </dict>
+</plist>

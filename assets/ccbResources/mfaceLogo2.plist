@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>frames</key>
+        <dict>
+            <key>mfaceLogo2.png</key>
+            <dict>
+                <key>frame</key>
+                <string>{{2,2},{575,347}}</string>
+                <key>offset</key>
+                <string>{-1,-4}</string>
+                <key>rotated</key>
+                <false/>
+                <key>sourceColorRect</key>
+                <string>{{8,20},{575,347}}</string>
+                <key>sourceSize</key>
+                <string>{593,379}</string>
+            </dict>
+        </dict>
+        <key>metadata</key>
+        <dict>
+            <key>format</key>
+            <integer>2</integer>
+            <key>realTextureFileName</key>
+            <string>mfaceLogo2.pvr.ccz</string>
+            <key>size</key>
+            <string>{579,351}</string>
+            <key>smartupdate</key>
+            <string>$TexturePacker:SmartUpdate:0373a9f6380277c1a39394b058d92eeb:1/1$</string>
+            <key>textureFileName</key>
+            <string>mfaceLogo2.pvr.ccz</string>
+        </dict>
+    </dict>
+</plist>
