@@ -115,16 +115,30 @@ jobs:
           test -f modern-client/app/src/main/cpp/lua/lua.h
           test -f modern-client/app/src/main/cpp/lua/lauxlib.c
 
-      - name: Build ARM64 Stage 8.0 APK
+      - name: Import libpng ARM64 source
+        run: |
+          rm -rf /tmp/libpng-1.6.43 /tmp/libpng.tar.gz modern-client/app/src/main/cpp/libpng
+          curl -L --fail --retry 3 \
+            https://github.com/pnggroup/libpng/archive/refs/tags/v1.6.43.tar.gz \
+            -o /tmp/libpng.tar.gz
+          tar -xzf /tmp/libpng.tar.gz -C /tmp
+          PNG_DIR="$(find /tmp -maxdepth 1 -type d -name 'libpng-*' | head -n1)"
+          test -n "$PNG_DIR"
+          mkdir -p modern-client/app/src/main/cpp/libpng
+          cp -a "$PNG_DIR"/. modern-client/app/src/main/cpp/libpng/
+          test -f modern-client/app/src/main/cpp/libpng/png.h
+          test -f modern-client/app/src/main/cpp/libpng/png.c
+
+      - name: Build ARM64 Stage 8.8 APK
         working-directory: modern-client
         run: gradle assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage8.0.apk
+        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage8.8.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Rocks-D-ARM64-stage8.0
-          path: Rocks-D-ARM64-stage8.0.apk
+          name: Rocks-D-ARM64-stage8.8
+          path: Rocks-D-ARM64-stage8.8.apk
           if-no-files-found: error
