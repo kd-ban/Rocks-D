@@ -1,0 +1,54 @@
+{
+  "missing_asset_count": 3029,
+  "missing_asset_bytes": 119270579,
+  "parts": [
+    {
+      "file": "Rocks-D-missing-assets-part-01-of-08.zip",
+      "files": 614,
+      "size": 12875806,
+      "sha256": "147c9f614455e9027f4b3b4e31702e1b317991312482f5db30b07936c1f5c67e"
+    },
+    {
+      "file": "Rocks-D-missing-assets-part-02-of-08.zip",
+      "files": 145,
+      "size": 14276696,
+      "sha256": "aca3f21fc0a76cb6f3c2178c4dbdee18828a37f02450fcbbde99e07bc165161f"
+    },
+    {
+      "file": "Rocks-D-missing-assets-part-03-of-08.zip",
+      "files": 295,
+      "size": 14601361,
+      "sha256": "6ba3c1236b88c71b4ac54baf28e85ec632930b1e67598a5dc11893511a6bbd64"
+    },
+    {
+      "file": "Rocks-D-missing-assets-part-04-of-08.zip",
+      "files": 369,
+      "size": 15029236,
+      "sha256": "f74bfe4f031ddccb9b0a48879101103b6ee264ac907d6a26a2d29194d3992c6d"
+    },
+    {
+      "file": "Rocks-D-missing-assets-part-05-of-08.zip",
+      "files": 550,
+      "size": 15305701,
+      "sha256": "a3e9705e8d738223f9b6948668aadafa955e5bd9444fbf8ff65097eaf71e5303"
+    },
+    {
+      "file": "Rocks-D-missing-assets-part-06-of-08.zip",
+      "files": 279,
+      "size": 15350438,
+      "sha256": "232883c7c18f6205afb6221639a49f315d50879cee3dce6d4f10e42ca0fc6e09"
+    },
+    {
+      "file": "Rocks-D-missing-assets-part-07-of-08.zip",
+      "files": 272,
+      "size": 14437001,
+      "sha256": "536563b13837ec1de1535c1750aa63094562dc1239bde23f676731355106227f"
+    },
+    {
+      "file": "Rocks-D-missing-assets-part-08-of-08.zip",
+      "files": 505,
+      "size": 7245638,
+      "sha256": "4b349e6881d785fce49a2cd50096df2bca99941607995f08dfa541e94bcba429"
+    }
+  ]
+}
