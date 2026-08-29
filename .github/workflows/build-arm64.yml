@@ -96,16 +96,16 @@ jobs:
           test -f modern-client/app/src/main/cpp/lua/lua.h
           test -f modern-client/app/src/main/cpp/lua/lauxlib.c
 
-      - name: Build ARM64 Stage 5.3 APK
+      - name: Build ARM64 Stage 6.0 APK
         working-directory: modern-client
         run: gradle assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage5.3.apk
+        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage6.0.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Rocks-D-ARM64-stage5.3
-          path: Rocks-D-ARM64-stage5.3.apk
+          name: Rocks-D-ARM64-stage6.0
+          path: Rocks-D-ARM64-stage6.0.apk
           if-no-files-found: error
