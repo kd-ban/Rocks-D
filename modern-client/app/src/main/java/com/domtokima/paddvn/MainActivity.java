@@ -29,7 +29,7 @@ public final class MainActivity extends Activity {
         String bootstrap = executeLua("stage4/bootstrap.lua", "Bootstrap");
         String originalConf = conf ? executeLua("decrypted/conf.lua", "Original conf") : "Original conf: MISSING";
 
-        String base = "Rocks-D ARM64 Stage 5\n" + runtime + "\n" + bootstrap + "\n" + originalConf
+        String base = "Rocks-D ARM64 Stage 6.0\n" + runtime + "\n" + bootstrap + "\n" + originalConf
                 + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING");
         view.setText(base + "\nServer: CHECKING...");
 
