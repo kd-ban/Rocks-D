@@ -1,26 +1,28 @@
 package com.domtokima.paddvn;
 
 import android.app.Activity;
-import android.content.res.AssetManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Rect;
+import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
 
 public final class MainActivity extends Activity {
+    static {
+        System.loadLibrary("game");
+    }
+
+    private GLSurfaceView surface;
+
+    private static native void nativeInit();
+    private static native void nativeResize(int width, int height);
+    private static native void nativeRender();
+    private static native void nativePause();
+    private static native void nativeResume();
+
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -30,116 +32,38 @@ public final class MainActivity extends Activity {
                 View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-        setContentView(new GameView());
+
+        surface = new GLSurfaceView(this);
+        surface.setEGLContextClientVersion(2);
+        surface.setPreserveEGLContextOnPause(true);
+        surface.setRenderer(new Renderer());
+        surface.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+        setContentView(surface);
     }
 
-    private final class GameView extends View {
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private Bitmap artwork;
-        private String assetPath = "searching original game assets...";
-        private volatile String serverState = "SERVER CHECKING";
+    @Override protected void onPause() {
+        nativePause();
+        surface.onPause();
+        super.onPause();
+    }
 
-        GameView() {
-            super(MainActivity.this);
-            setBackgroundColor(Color.BLACK);
-            text.setColor(Color.WHITE);
-            text.setTextSize(34f);
-            loadOriginalArtwork();
-            checkServerAsync();
+    @Override protected void onResume() {
+        super.onResume();
+        surface.onResume();
+        nativeResume();
+    }
+
+    private static final class Renderer implements GLSurfaceView.Renderer {
+        @Override public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+            nativeInit();
         }
 
-        private void loadOriginalArtwork() {
-            try {
-                List<String> candidates = new ArrayList<>();
-                collectImages(getAssets(), "original", candidates, 0);
-                Collections.sort(candidates);
-
-                String chosen = chooseBest(candidates);
-                if (chosen != null) {
-                    try (InputStream in = getAssets().open(chosen)) {
-                        artwork = BitmapFactory.decodeStream(in);
-                    }
-                    assetPath = chosen + " (" + candidates.size() + " images found)";
-                } else {
-                    assetPath = "NO PNG/JPG FOUND UNDER original/";
-                }
-            } catch (Throwable t) {
-                assetPath = "ASSET ERROR: " + t.getClass().getSimpleName();
-            }
+        @Override public void onSurfaceChanged(GL10 gl, int width, int height) {
+            nativeResize(width, height);
         }
 
-        private String chooseBest(List<String> candidates) {
-            String[] preferred = {"login", "loading", "background", "main", "start", "logo"};
-            for (String keyword : preferred) {
-                for (String path : candidates) {
-                    if (path.toLowerCase().contains(keyword)) return path;
-                }
-            }
-            return candidates.isEmpty() ? null : candidates.get(0);
-        }
-
-        private void collectImages(AssetManager am, String dir, List<String> out, int depth) throws Exception {
-            if (depth > 10) return;
-            String[] names = am.list(dir);
-            if (names == null) return;
-            for (String name : names) {
-                String path = dir.length() == 0 ? name : dir + "/" + name;
-                String lower = name.toLowerCase();
-                if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
-                    out.add(path);
-                } else {
-                    String[] child = am.list(path);
-                    if (child != null && child.length > 0) collectImages(am, path, out, depth + 1);
-                }
-            }
-        }
-
-        private void checkServerAsync() {
-            new Thread(() -> {
-                HttpURLConnection c = null;
-                try {
-                    c = (HttpURLConnection) new URL("http://192.168.8.59/health").openConnection();
-                    c.setConnectTimeout(1800);
-                    c.setReadTimeout(1800);
-                    int code = c.getResponseCode();
-                    serverState = code == 200 ? "SERVER ONLINE" : "SERVER HTTP " + code;
-                } catch (Throwable t) {
-                    serverState = "SERVER OFFLINE";
-                } finally {
-                    if (c != null) c.disconnect();
-                }
-                postInvalidate();
-            }, "rocksd-server-check").start();
-        }
-
-        @Override protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            int w = getWidth();
-            int h = getHeight();
-
-            if (artwork != null && artwork.getWidth() > 0 && artwork.getHeight() > 0) {
-                float srcRatio = (float) artwork.getWidth() / artwork.getHeight();
-                float dstRatio = (float) w / Math.max(1, h);
-                Rect dst;
-                if (srcRatio > dstRatio) {
-                    int dh = Math.round(w / srcRatio);
-                    int top = (h - dh) / 2;
-                    dst = new Rect(0, top, w, top + dh);
-                } else {
-                    int dw = Math.round(h * srcRatio);
-                    int left = (w - dw) / 2;
-                    dst = new Rect(left, 0, left + dw, h);
-                }
-                canvas.drawBitmap(artwork, null, dst, paint);
-            }
-
-            paint.setColor(0xAA000000);
-            canvas.drawRect(0, Math.max(0, h - 150), w, h, paint);
-            canvas.drawText("Rocks-D Stage 7.1 | " + serverState, 30, h - 92, text);
-            text.setTextSize(23f);
-            canvas.drawText("Original asset: " + assetPath, 30, h - 48, text);
-            text.setTextSize(34f);
+        @Override public void onDrawFrame(GL10 gl) {
+            nativeRender();
         }
     }
 }
