@@ -51,6 +51,7 @@ add_library(game SHARED
     "${COCOS_ROOT}/textures/CCTexturePVR.cpp"
     "${COCOS_ROOT}/label_nodes/CCLabelAtlas.cpp"
     "${COCOS_ROOT}/label_nodes/CCLabelBMFont.cpp"
+    "${COCOS_ROOT}/platform/CCSAXParser.cpp"
     "${COCOS_ROOT}/platform/CCFileUtils.cpp"
     "${COCOS_ROOT}/platform/CCEGLViewProtocol.cpp"
     "${COCOS_ROOT}/platform/android/CCEGLView.cpp"
@@ -58,6 +59,12 @@ add_library(game SHARED
     "${COCOS_ROOT}/platform/android/CCFileUtilsAndroid.cpp"
     "${COCOS_ROOT}/platform/android/CCCommon.cpp"
     "${COCOS_ROOT}/platform/android/jni/JniHelper.cpp"
+    "${COCOS_ROOT}/platform/android/jni/Java_org_cocos2dx_lib_Cocos2dxHelper.cpp"
+    "${COCOS_ROOT}/platform/android/jni/IMEJni.cpp"
+    "${COCOS_ROOT}/support/tinyxml2/tinyxml2.cpp"
+    "${COCOS_ROOT}/support/zip_support/ZipUtils.cpp"
+    "${COCOS_ROOT}/support/zip_support/ioapi.cpp"
+    "${COCOS_ROOT}/support/zip_support/unzip.cpp"
     "${COCOS_ROOT}/shaders/ccShaders.cpp"
     "${COCOS_ROOT}/shaders/CCGLProgram.cpp"
     "${COCOS_ROOT}/shaders/ccGLStateCache.cpp"
@@ -87,6 +94,8 @@ target_include_directories(game PRIVATE
     "${COCOS_ROOT}/kazmath/include"
     "${COCOS_ROOT}/platform/android"
     "${COCOS_ROOT}/platform/android/jni"
+    "${COCOS_ROOT}/support/tinyxml2"
+    "${COCOS_ROOT}/support/zip_support"
 )
 
 target_compile_definitions(game PRIVATE USE_FILE32API)
