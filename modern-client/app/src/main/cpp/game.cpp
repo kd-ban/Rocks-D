@@ -9,21 +9,55 @@ extern "C" {
 }
 
 static int safeAssert(lua_State* L) {
-    if (!lua_toboolean(L, 1)) {
-        return luaL_error(L, "assertion failed");
-    }
+    if (!lua_toboolean(L, 1)) return luaL_error(L, "assertion failed");
     lua_settop(L, 1);
     return 1;
+}
+
+static int noop(lua_State* L) {
+    (void)L;
+    return 0;
+}
+
+static int returnZero(lua_State* L) {
+    lua_pushnumber(L, 0);
+    return 1;
+}
+
+static int returnSelf(lua_State* L) {
+    lua_pushvalue(L, 1);
+    return 1;
+}
+
+static void addMethod(lua_State* L, const char* name, lua_CFunction fn) {
+    lua_pushcfunction(L, fn);
+    lua_setfield(L, -2, name);
+}
+
+static void registerCCDirector(lua_State* L) {
+    // Minimal cocos2d-x 2.x compatibility object so original conf.lua can advance.
+    lua_newtable(L);                  // CCDirector
+    addMethod(L, "sharedDirector", returnSelf);
+    addMethod(L, "getWinSize", returnZero);
+    addMethod(L, "getVisibleSize", returnZero);
+    addMethod(L, "getVisibleOrigin", returnZero);
+    addMethod(L, "setDisplayStats", noop);
+    addMethod(L, "setAnimationInterval", noop);
+    addMethod(L, "getRunningScene", returnZero);
+    addMethod(L, "runWithScene", noop);
+    addMethod(L, "replaceScene", noop);
+    lua_pushvalue(L, -1);
+    lua_setglobal(L, "CCDirector");
+    lua_pop(L, 1);
 }
 
 static std::string runLua(const char* data, size_t size) {
     lua_State* L = luaL_newstate();
     if (!L) return "Lua: STATE FAILED";
 
-    // Stage 4.5 showed luaL_openlibs is unstable in this ARM64 port.
-    // Register only the primitive needed by bootstrap for now.
     lua_pushcfunction(L, safeAssert);
     lua_setglobal(L, "assert");
+    registerCCDirector(L);
 
     int rc = luaL_loadbuffer(L, data, size, "@bootstrap.lua");
     if (rc == 0) rc = lua_pcall(L, 0, 1, 0);
@@ -43,7 +77,7 @@ static std::string runLua(const char* data, size_t size) {
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_domtokima_paddvn_MainActivity_nativeStatus(JNIEnv* env, jclass) {
-    return env->NewStringUTF("Lua ARM64 runtime loaded / Stage 4.6");
+    return env->NewStringUTF("Lua ARM64 runtime loaded / Stage 5.2");
 }
 
 extern "C" JNIEXPORT jstring JNICALL
