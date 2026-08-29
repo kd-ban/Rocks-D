@@ -1,237 +1,144 @@
 package com.domtokima.paddvn;
 
 import android.app.Activity;
-import android.content.SharedPreferences;
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.Bundle;
-import android.view.Gravity;
-import android.widget.TextView;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public final class MainActivity extends Activity {
-    private static final String PREFS = "rocksd_stage62";
-    private static final String KEY_CHECKPOINT = "checkpoint";
-    private static final String CRASH_FILE = "last_crash.txt";
-
-    private boolean nativeLoaded = false;
-    private String nativeLoadError = "not attempted";
-    private TextView view;
-
-    private static native String nativeStatus();
-    private static native String nativeRunLuaBytes(byte[] data);
-
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        view = new TextView(this);
-        view.setGravity(Gravity.CENTER);
-        view.setTextSize(16f);
-        view.setPadding(24, 24, 24, 24);
-        view.setTextIsSelectable(true);
-        setContentView(view);
-
-        installJavaCrashRecorder();
-
-        String previousCheckpoint = prefs().getString(KEY_CHECKPOINT, "");
-        if (previousCheckpoint != null && !previousCheckpoint.isEmpty()) {
-            String saved = readCrashFile();
-            String message = "Rocks-D ARM64 Stage 6.2\n\nCRASH CHECKPOINT FOUND\n"
-                    + "The previous run stopped during:\n" + previousCheckpoint
-                    + (saved.isEmpty() ? "" : "\n\nSaved Java error:\n" + saved)
-                    + "\n\nTake a screenshot of this screen and send it.";
-            view.setText(message);
-            return;
-        }
-
-        deleteCrashFile();
-
-        if (!loadNativeLibrary()) return;
-
-        boolean sso = assetExists("original/lua/SSO/sso.op");
-        boolean network = assetExists("original/lua/util/netWork.op");
-        boolean conf = assetExists("decrypted/conf.lua");
-
-        String runtime = runNativeStatus();
-        if (runtime == null) return;
-
-        String bootstrap = executeLua("stage4/bootstrap.lua", "Bootstrap");
-        if (bootstrap == null) return;
-
-        String originalConf;
-        if (conf) {
-            originalConf = executeLua("decrypted/conf.lua", "Original conf");
-            if (originalConf == null) return;
-        } else {
-            originalConf = "Original conf: MISSING";
-        }
-
-        clearCheckpoint();
-
-        String base = "Rocks-D ARM64 Stage 6.2\nNative library: LOADED\n" + runtime + "\n" + bootstrap + "\n" + originalConf
-                + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING");
-        view.setText(base + "\nServer: CHECKING...");
-
-        new Thread(() -> {
-            String server = checkServer();
-            runOnUiThread(() -> view.setText(base + "\nServer: " + server));
-        }).start();
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        setContentView(new GameView());
     }
 
-    private boolean loadNativeLibrary() {
-        setCheckpoint("1/4 System.loadLibrary(game)");
-        try {
-            System.loadLibrary("game");
-            nativeLoaded = true;
-            nativeLoadError = "none";
-            clearCheckpoint();
-            return true;
-        } catch (Throwable t) {
-            nativeLoaded = false;
-            nativeLoadError = describe(t);
-            saveJavaError("System.loadLibrary(game)", t);
-            view.setText("Rocks-D ARM64 Stage 6.2\nNative library: FAILED\n" + nativeLoadError
-                    + "\n\nThis error was saved inside the app.");
-            return false;
+    private final class GameView extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private Bitmap artwork;
+        private String assetPath = "searching original game assets...";
+        private volatile String serverState = "SERVER CHECKING";
+
+        GameView() {
+            super(MainActivity.this);
+            setBackgroundColor(Color.BLACK);
+            text.setColor(Color.WHITE);
+            text.setTextSize(34f);
+            loadOriginalArtwork();
+            checkServerAsync();
         }
-    }
 
-    private String runNativeStatus() {
-        if (!nativeLoaded) return "Native status: SKIPPED";
-        setCheckpoint("2/4 nativeStatus()");
-        try {
-            String result = nativeStatus();
-            clearCheckpoint();
-            return result;
-        } catch (Throwable t) {
-            saveJavaError("nativeStatus()", t);
-            view.setText("Rocks-D ARM64 Stage 6.2\nNative status: ERROR\n" + describe(t));
-            return null;
-        }
-    }
-
-    private String executeLua(String path, String label) {
-        if (!nativeLoaded) return label + ": SKIPPED / native library unavailable";
-
-        String checkpoint = label.startsWith("Bootstrap")
-                ? "3/4 nativeRunLuaBytes(stage4/bootstrap.lua)"
-                : "4/4 nativeRunLuaBytes(decrypted/conf.lua)";
-        setCheckpoint(checkpoint);
-
-        try {
-            byte[] data = readAsset(path);
-            if (data.length == 0) {
-                clearCheckpoint();
-                return label + ": EMPTY";
-            }
-            String result = nativeRunLuaBytes(data);
-            clearCheckpoint();
-            return label + ": " + result;
-        } catch (Throwable t) {
-            saveJavaError(checkpoint, t);
-            view.setText("Rocks-D ARM64 Stage 6.2\n" + label + ": ERROR\n" + describe(t));
-            return null;
-        }
-    }
-
-    private void installJavaCrashRecorder() {
-        final Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
-        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+        private void loadOriginalArtwork() {
             try {
-                String checkpoint = prefs().getString(KEY_CHECKPOINT, "unknown");
-                saveJavaError("Uncaught exception at " + checkpoint, throwable);
-            } catch (Throwable ignored) {
+                List<String> candidates = new ArrayList<>();
+                collectImages(getAssets(), "original/images", candidates, 0);
+                Collections.sort(candidates);
+
+                // Prefer larger/background-looking files when the names exist.
+                String chosen = null;
+                for (String path : candidates) {
+                    String lower = path.toLowerCase();
+                    if (lower.contains("login") || lower.contains("loading")
+                            || lower.contains("background") || lower.contains("main")) {
+                        chosen = path;
+                        break;
+                    }
+                }
+                if (chosen == null && !candidates.isEmpty()) chosen = candidates.get(0);
+
+                if (chosen != null) {
+                    try (InputStream in = getAssets().open(chosen)) {
+                        artwork = BitmapFactory.decodeStream(in);
+                    }
+                    assetPath = chosen;
+                } else {
+                    assetPath = "NO PNG/JPG FOUND IN original/images";
+                }
+            } catch (Throwable t) {
+                assetPath = "ASSET ERROR: " + t.getClass().getSimpleName();
             }
-            if (previous != null) previous.uncaughtException(thread, throwable);
-        });
-    }
-
-    private SharedPreferences prefs() {
-        return getSharedPreferences(PREFS, MODE_PRIVATE);
-    }
-
-    private void setCheckpoint(String checkpoint) {
-        prefs().edit().putString(KEY_CHECKPOINT, checkpoint).commit();
-    }
-
-    private void clearCheckpoint() {
-        prefs().edit().remove(KEY_CHECKPOINT).commit();
-    }
-
-    private void saveJavaError(String where, Throwable t) {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        pw.println(where);
-        t.printStackTrace(pw);
-        pw.flush();
-        byte[] bytes = sw.toString().getBytes(StandardCharsets.UTF_8);
-        try (FileOutputStream out = openFileOutput(CRASH_FILE, MODE_PRIVATE)) {
-            out.write(bytes);
-        } catch (Exception ignored) {
         }
-    }
 
-    private String readCrashFile() {
-        File file = new File(getFilesDir(), CRASH_FILE);
-        if (!file.exists()) return "";
-        try (FileInputStream in = new FileInputStream(file); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[2048];
-            int n;
-            while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
-            return new String(out.toByteArray(), StandardCharsets.UTF_8);
-        } catch (Exception ignored) {
-            return "";
+        private void collectImages(AssetManager am, String dir, List<String> out, int depth) throws Exception {
+            if (depth > 6) return;
+            String[] names = am.list(dir);
+            if (names == null) return;
+            for (String name : names) {
+                String path = dir.length() == 0 ? name : dir + "/" + name;
+                String lower = name.toLowerCase();
+                if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+                    out.add(path);
+                } else if (!name.contains(".")) {
+                    collectImages(am, path, out, depth + 1);
+                }
+            }
         }
-    }
 
-    private void deleteCrashFile() {
-        try {
-            new File(getFilesDir(), CRASH_FILE).delete();
-        } catch (Throwable ignored) {
+        private void checkServerAsync() {
+            new Thread(() -> {
+                HttpURLConnection c = null;
+                try {
+                    c = (HttpURLConnection) new URL("http://192.168.8.59/health").openConnection();
+                    c.setConnectTimeout(1800);
+                    c.setReadTimeout(1800);
+                    serverState = c.getResponseCode() == 200 ? "SERVER ONLINE" : "SERVER HTTP " + c.getResponseCode();
+                } catch (Throwable t) {
+                    serverState = "SERVER OFFLINE";
+                } finally {
+                    if (c != null) c.disconnect();
+                }
+                postInvalidate();
+            }, "rocksd-server-check").start();
         }
-    }
 
-    private String describe(Throwable t) {
-        return t.getClass().getSimpleName() + ": " + String.valueOf(t.getMessage());
-    }
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            int w = getWidth();
+            int h = getHeight();
 
-    private byte[] readAsset(String path) throws Exception {
-        try (InputStream in = getAssets().open(path); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[4096];
-            int n;
-            while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
-            return out.toByteArray();
-        }
-    }
+            if (artwork != null && artwork.getWidth() > 0 && artwork.getHeight() > 0) {
+                float srcRatio = (float) artwork.getWidth() / artwork.getHeight();
+                float dstRatio = (float) w / Math.max(1, h);
+                Rect dst;
+                if (srcRatio > dstRatio) {
+                    int dh = Math.round(w / srcRatio);
+                    int top = (h - dh) / 2;
+                    dst = new Rect(0, top, w, top + dh);
+                } else {
+                    int dw = Math.round(h * srcRatio);
+                    int left = (w - dw) / 2;
+                    dst = new Rect(left, 0, left + dw, h);
+                }
+                canvas.drawBitmap(artwork, null, dst, paint);
+            }
 
-    private boolean assetExists(String path) {
-        try (InputStream in = getAssets().open(path)) {
-            return in.read() >= -1;
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    private String checkServer() {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL("http://192.168.8.59/health").openConnection();
-            connection.setConnectTimeout(2500);
-            connection.setReadTimeout(2500);
-            int code = connection.getResponseCode();
-            return code == 200 ? "ONLINE" : "HTTP " + code;
-        } catch (Exception e) {
-            return "OFFLINE / " + e.getClass().getSimpleName();
-        } finally {
-            if (connection != null) connection.disconnect();
+            paint.setColor(0xAA000000);
+            canvas.drawRect(0, Math.max(0, h - 150), w, h, paint);
+            canvas.drawText("Rocks-D Stage 7.0 | " + serverState, 30, h - 92, text);
+            text.setTextSize(23f);
+            canvas.drawText("Original asset: " + assetPath, 30, h - 48, text);
+            text.setTextSize(34f);
         }
     }
 }
