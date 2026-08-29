@@ -6,9 +6,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
 set(COCOS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../engine/cocos2d-x-2.1.4/cocos2dx")
+set(PNG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/libpng")
+
+file(GLOB PNG_SOURCES "${PNG_ROOT}/*.c")
+list(FILTER PNG_SOURCES EXCLUDE REGEX ".*/pngtest\\.c$")
 
 add_library(game SHARED
     game.cpp
+    ${PNG_SOURCES}
     "${COCOS_ROOT}/cocos2d.cpp"
     "${COCOS_ROOT}/CCConfiguration.cpp"
     "${COCOS_ROOT}/CCScheduler.cpp"
@@ -75,6 +80,7 @@ add_library(game SHARED
 )
 
 target_include_directories(game PRIVATE
+    "${PNG_ROOT}"
     "${COCOS_ROOT}"
     "${COCOS_ROOT}/include"
     "${COCOS_ROOT}/kazmath/include"
@@ -83,7 +89,7 @@ target_include_directories(game PRIVATE
 )
 
 target_compile_definitions(game PRIVATE USE_FILE32API)
-target_compile_options(game PRIVATE -Wno-psabi)
+target_compile_options(game PRIVATE -Wno-psabi -Wno-format-security)
 
 find_library(log-lib log)
 find_library(android-lib android)
