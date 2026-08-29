@@ -10,9 +10,11 @@ set(PNG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/libpng")
 
 file(GLOB PNG_SOURCES "${PNG_ROOT}/*.c")
 list(FILTER PNG_SOURCES EXCLUDE REGEX ".*/pngtest\\.c$")
+list(FILTER PNG_SOURCES EXCLUDE REGEX ".*/example\\.c$")
 
 add_library(game SHARED
     game.cpp
+    CCImageCompat.cpp
     ${PNG_SOURCES}
     "${COCOS_ROOT}/cocos2d.cpp"
     "${COCOS_ROOT}/CCConfiguration.cpp"
@@ -54,7 +56,6 @@ add_library(game SHARED
     "${COCOS_ROOT}/platform/android/CCEGLView.cpp"
     "${COCOS_ROOT}/platform/android/CCAccelerometer.cpp"
     "${COCOS_ROOT}/platform/android/CCFileUtilsAndroid.cpp"
-    "${COCOS_ROOT}/platform/android/CCImage.cpp"
     "${COCOS_ROOT}/platform/android/CCCommon.cpp"
     "${COCOS_ROOT}/platform/android/jni/JniHelper.cpp"
     "${COCOS_ROOT}/shaders/ccShaders.cpp"
