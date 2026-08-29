@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(rocksd_game LANGUAGES C CXX)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
+
 set(COCOS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../engine/cocos2d-x-2.1.4/cocos2dx")
 
 add_library(game SHARED
