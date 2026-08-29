@@ -19,33 +19,33 @@ public final class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         final TextView view = new TextView(this);
         view.setGravity(Gravity.CENTER);
-        view.setTextSize(18f);
+        view.setTextSize(16f);
         setContentView(view);
 
         boolean sso = assetExists("original/lua/SSO/sso.op");
         boolean network = assetExists("original/lua/util/netWork.op");
+        boolean conf = assetExists("decrypted/conf.lua");
         String runtime = nativeStatus();
-        String luaResult = executeBootstrap();
+        String bootstrap = executeLua("stage4/bootstrap.lua", "Bootstrap");
+        String originalConf = conf ? executeLua("decrypted/conf.lua", "Original conf") : "Original conf: MISSING";
 
-        view.setText("Rocks-D ARM64 Stage 4.4\n" + runtime + "\n" + luaResult
-                + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING")
-                + "\nServer: CHECKING...");
+        String base = "Rocks-D ARM64 Stage 5\n" + runtime + "\n" + bootstrap + "\n" + originalConf
+                + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING");
+        view.setText(base + "\nServer: CHECKING...");
 
         new Thread(() -> {
             String server = checkServer();
-            runOnUiThread(() -> view.setText("Rocks-D ARM64 Stage 4.4\n" + runtime + "\n" + luaResult
-                    + "\nOriginal assets: " + ((sso && network) ? "LOADED" : "MISSING")
-                    + "\nServer: " + server));
+            runOnUiThread(() -> view.setText(base + "\nServer: " + server));
         }).start();
     }
 
-    private String executeBootstrap() {
+    private String executeLua(String path, String label) {
         try {
-            byte[] data = readAsset("stage4/bootstrap.lua");
-            if (data.length == 0) return "Lua execute: EMPTY ASSET";
-            return nativeRunLuaBytes(data);
+            byte[] data = readAsset(path);
+            if (data.length == 0) return label + ": EMPTY";
+            return label + ": " + nativeRunLuaBytes(data);
         } catch (Throwable t) {
-            return "Lua execute: JAVA ERROR / " + t.getClass().getSimpleName();
+            return label + ": JAVA ERROR / " + t.getClass().getSimpleName();
         }
     }
 
