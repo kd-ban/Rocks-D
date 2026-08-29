@@ -35,11 +35,24 @@ jobs:
           test -f modern-client/app/src/main/assets/original/lua/SSO/sso.op
           test -f modern-client/app/src/main/assets/original/lua/util/netWork.op
 
+      - name: Merge optional complete missing assets
+        run: |
+          if [ -f missing-assets/Rocks-D-missing-assets-ALL.zip ]; then
+            rm -rf /tmp/rocksd-missing
+            mkdir -p /tmp/rocksd-missing
+            unzip -q missing-assets/Rocks-D-missing-assets-ALL.zip -d /tmp/rocksd-missing
+            if [ -d /tmp/rocksd-missing/assets ]; then
+              cp -an /tmp/rocksd-missing/assets/. modern-client/app/src/main/assets/original/
+            else
+              cp -an /tmp/rocksd-missing/. modern-client/app/src/main/assets/original/
+            fi
+          fi
+          echo "Original asset count: $(find modern-client/app/src/main/assets/original -type f | wc -l)"
+
       - name: Decrypt original conf.op
         run: |
           CONF="$(find modern-client/app/src/main/assets/original -type f -iname 'conf.op' | head -n 1)"
           test -n "$CONF"
-          echo "Using $CONF"
           python3 - "$CONF" <<'PY'
           import pathlib, subprocess, sys
           src_path = pathlib.Path(sys.argv[1])
@@ -59,7 +72,19 @@ jobs:
           print('decrypted bytes:', len(data), '->', len(plain))
           PY
           test -s modern-client/app/src/main/assets/decrypted/conf.lua
-          echo 'conf.lua packaged successfully'
+
+      - name: Verify critical game data
+        run: |
+          test -f modern-client/app/src/main/assets/original/lua/conf.op
+          test -f modern-client/app/src/main/assets/original/lua/SSO/sso.op
+          test -f modern-client/app/src/main/assets/original/lua/util/netWork.op
+          test -f modern-client/app/src/main/assets/decrypted/conf.lua
+          if [ -f missing-assets/Rocks-D-missing-assets-ALL.zip ]; then
+            test -f modern-client/app/src/main/assets/original/lua/util/functions.op
+            test -d modern-client/app/src/main/assets/original/ccbResources
+            test -d modern-client/app/src/main/assets/original/images
+            test -d modern-client/app/src/main/assets/original/audio
+          fi
 
       - name: Import Lua 5.1.5 runtime
         run: |
@@ -71,16 +96,16 @@ jobs:
           test -f modern-client/app/src/main/cpp/lua/lua.h
           test -f modern-client/app/src/main/cpp/lua/lauxlib.c
 
-      - name: Build ARM64 Stage 5.1 APK
+      - name: Build ARM64 Stage 5.3 APK
         working-directory: modern-client
         run: gradle assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage5.1.apk
+        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage5.3.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Rocks-D-ARM64-stage5.1
-          path: Rocks-D-ARM64-stage5.1.apk
+          name: Rocks-D-ARM64-stage5.3
+          path: Rocks-D-ARM64-stage5.3.apk
           if-no-files-found: error
