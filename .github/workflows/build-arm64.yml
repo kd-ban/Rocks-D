@@ -28,12 +28,38 @@ jobs:
       - name: Import original game assets
         run: |
           test -f Rocks-D-private-server-UNSIGNED.apk
-          rm -rf /tmp/rocksd-original modern-client/app/src/main/assets/original
-          mkdir -p /tmp/rocksd-original modern-client/app/src/main/assets/original
+          rm -rf /tmp/rocksd-original modern-client/app/src/main/assets/original modern-client/app/src/main/assets/decrypted
+          mkdir -p /tmp/rocksd-original modern-client/app/src/main/assets/original modern-client/app/src/main/assets/decrypted
           unzip -q Rocks-D-private-server-UNSIGNED.apk 'assets/*' -d /tmp/rocksd-original
           cp -a /tmp/rocksd-original/assets/. modern-client/app/src/main/assets/original/
           test -f modern-client/app/src/main/assets/original/lua/SSO/sso.op
           test -f modern-client/app/src/main/assets/original/lua/util/netWork.op
+
+      - name: Decrypt original conf.op
+        run: |
+          CONF="$(find modern-client/app/src/main/assets/original -type f -iname 'conf.op' | head -n 1)"
+          test -n "$CONF"
+          echo "Using $CONF"
+          python3 - "$CONF" <<'PY'
+          import pathlib, subprocess, sys
+          src_path = pathlib.Path(sys.argv[1])
+          data = src_path.read_bytes()
+          n = max(0, (len(data)//8 - 1) * 8)
+          head, tail = data[:n], data[n:]
+          if head:
+              p = subprocess.run([
+                  'openssl','enc','-d','-des-ecb','-K','a5320f8e5957633d','-nopad',
+                  '-provider','legacy','-provider','default'
+              ], input=head, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+              plain = p.stdout + tail
+          else:
+              plain = tail
+          out = pathlib.Path('modern-client/app/src/main/assets/decrypted/conf.lua')
+          out.write_bytes(plain)
+          print('decrypted bytes:', len(data), '->', len(plain))
+          PY
+          test -s modern-client/app/src/main/assets/decrypted/conf.lua
+          echo 'conf.lua packaged successfully'
 
       - name: Import Lua 5.1.5 runtime
         run: |
@@ -44,18 +70,17 @@ jobs:
           cp -a /tmp/lua-5.1.5/src/. modern-client/app/src/main/cpp/lua/
           test -f modern-client/app/src/main/cpp/lua/lua.h
           test -f modern-client/app/src/main/cpp/lua/lauxlib.c
-          echo "Lua 5.1.5 runtime imported"
 
-      - name: Build ARM64 Stage 3 APK
+      - name: Build ARM64 Stage 5.1 APK
         working-directory: modern-client
         run: gradle assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage3.apk
+        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage5.1.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Rocks-D-ARM64-stage3
-          path: Rocks-D-ARM64-stage3.apk
+          name: Rocks-D-ARM64-stage5.1
+          path: Rocks-D-ARM64-stage5.1.apk
           if-no-files-found: error
