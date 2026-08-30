@@ -118,21 +118,23 @@ jobs:
           test -n "$PNG_DIR"
           mkdir -p modern-client/app/src/main/cpp/libpng
           cp -a "$PNG_DIR"/. modern-client/app/src/main/cpp/libpng/
+          cp -a "$PNG_DIR"/arm/*.c modern-client/app/src/main/cpp/libpng/
           if [ ! -f modern-client/app/src/main/cpp/libpng/pnglibconf.h ]; then
             cp modern-client/app/src/main/cpp/libpng/scripts/pnglibconf.h.prebuilt modern-client/app/src/main/cpp/libpng/pnglibconf.h
           fi
           test -f modern-client/app/src/main/cpp/libpng/png.h
           test -f modern-client/app/src/main/cpp/libpng/pnglibconf.h
           test -f modern-client/app/src/main/cpp/libpng/png.c
+          test -f modern-client/app/src/main/cpp/libpng/arm_init.c
 
-      - name: Build ARM64 Stage 8.14 APK
+      - name: Build ARM64 Stage 8.15 APK
         id: build_apk
         working-directory: modern-client
         shell: bash
         run: |
           set +e
           set -o pipefail
-          gradle assembleDebug --stacktrace 2>&1 | tee ../stage8.14-build.log
+          gradle assembleDebug --stacktrace 2>&1 | tee ../stage8.15-build.log
           status=${PIPESTATUS[0]}
           echo "gradle_status=$status" >> "$GITHUB_OUTPUT"
           exit 0
@@ -141,8 +143,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Rocks-D-ARM64-stage8.14-build-log
-          path: stage8.14-build.log
+          name: Rocks-D-ARM64-stage8.15-build-log
+          path: stage8.15-build.log
           if-no-files-found: error
 
       - name: Fail if Gradle failed
@@ -150,11 +152,11 @@ jobs:
         run: exit 1
 
       - name: Rename APK
-        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage8.14.apk
+        run: cp modern-client/app/build/outputs/apk/debug/app-debug.apk Rocks-D-ARM64-stage8.15.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Rocks-D-ARM64-stage8.14
-          path: Rocks-D-ARM64-stage8.14.apk
+          name: Rocks-D-ARM64-stage8.15
+          path: Rocks-D-ARM64-stage8.15.apk
           if-no-files-found: error
